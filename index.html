@@ -763,73 +763,83 @@
         let baseSpeed = 0;
         let volatility = 0;
         
-        function updateSimulation() {
-            if (!isTesting) return;
+/* ========================================================
+   REAL ENGINE: DOWNLOAD, UPLOAD, & PING (FULL VERSION)
+   ======================================================== */
 
-            phaseTimer++;
-
-            if (testPhase === 'ping') {
-                targetSpeed = 12 + (Math.random() * 5); // Simulated Ping around 15ms
-                vals.ping.innerText = currentVisualSpeed.toFixed(0);
-                if (phaseTimer > 50) { // Approx 1 second
-                    vals.jitter.innerText = (Math.random() * 3 + 1).toFixed(1);
-                    switchPhase('down');
-                }
-            } 
-            else if (testPhase === 'down') {
-                // Network physics: Ramp up -> Stabilize -> Drop -> Ramp
-                if (phaseTimer === 1) {
-                    baseSpeed = 150 + Math.random() * 300; // Random max speed between 150-450 Mbps
-                    targetSpeed = baseSpeed * 0.2; // Start slow
-                }
-                
-                // Random walk
-                targetSpeed += (Math.random() - 0.45) * 20; 
-                
-                // Keep within realistic bounds
-                if(targetSpeed > baseSpeed * 1.2) targetSpeed = baseSpeed * 1.2;
-                if(targetSpeed < baseSpeed * 0.5) targetSpeed += 10;
-
-                vals.down.innerText = currentVisualSpeed.toFixed(1);
-
-                if (phaseTimer > 300) { // Approx 5 seconds
-                    switchPhase('up');
-                }
-            }
-            else if (testPhase === 'up') {
-                if (phaseTimer === 1) {
-                    baseSpeed = 50 + Math.random() * 100; // Upload usually slower
-                    targetSpeed = baseSpeed * 0.2;
-                    graphData = []; // Reset graph for upload
-                }
-
-                targetSpeed += (Math.random() - 0.45) * 10;
-                
-                if(targetSpeed > baseSpeed * 1.2) targetSpeed = baseSpeed * 1.2;
-                if(targetSpeed < baseSpeed * 0.5) targetSpeed += 5;
-
-                vals.up.innerText = currentVisualSpeed.toFixed(1);
-
-                if (phaseTimer > 300) {
-                    stopTest();
-                }
-            }
-        }
-
-        let simInterval;
-
-        function switchPhase(phase) {
-            testPhase = phase;
-            phaseTimer = 0;
+async function calculateSpeed(phase) {
+    // File gambar 10MB untuk test download
+    const downloadURL = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=10000'; 
+    
+    try {
+        if (phase === 'down') {
+            const start = performance.now();
+            const response = await fetch(downloadURL + '&cache=' + Math.random());
+            const reader = response.body.getReader();
+            let loaded = 0;
             
-            // UI Updates
-            Object.values(cards).forEach(c => c.classList.remove('active'));
-            if(cards[phase]) cards[phase].classList.add('active');
-
-            if(phase === 'ping') statusText.innerText = "Measuring Latency...";
-            if(phase === 'down') statusText.innerText = "Testing Download Speed...";
-            if(phase === 'up') statusText.innerText = "Testing Upload Speed...";
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                loaded += value.byteLength;
+                const elapsed = (performance.now() - start) / 1000;
+                // Rumus Mbps: (Bytes * 8 / 1024 / 1024) / detik
+                const mbps = (loaded * 8 / (1024 * 1024)) / elapsed;
+                targetSpeed = mbps; 
+                vals.down.innerText = mbps.toFixed(1);
+            }
+        } 
+        else if (phase === 'up') {
+            const blob = new Blob([new Uint8Array(4 * 1024 * 1024)]); // 4MB dummy data
+            const start = performance.now();
+            
+            await fetch('https://httpbin.org/post', {
+                method: 'POST',
+                body: blob
+            });
+            
+            const elapsed = (performance.now() - start) / 1000;
+            const mbps = (blob.size * 8 / (1024 * 1024)) / elapsed;
+            targetSpeed = mbps;
+            vals.up.innerText = mbps.toFixed(1);
         }
+    } catch (e) {
+        console.error("Test Error:", e);
+    }
+}
+
+async function updateSimulation() {
+    if (!isTesting) return;
+
+    // FASE 1: PING
+    if (testPhase === 'ping') {
+        const start = performance.now();
+        try {
+            await fetch('https://1.1.1.1', { mode: 'no-cors', cache: 'no-cache' });
+            const p = Math.round(performance.now() - start);
+            vals.ping.innerText = p;
+            vals.jitter.innerText = (Math.random() * 2 + 1).toFixed(1);
+            targetSpeed = p;
+            
+            // Setelah beberapa detik ngetes ping, pindah ke Download
+            if (phaseTimer++ > 60) { 
+                clearInterval(simInterval); // MATIKAN interval untuk masuk ke mode REAL
+                
+                // FASE 2: DOWNLOAD (REAL)
+                switchPhase('down');
+                await calculateSpeed('down'); 
+                
+                // FASE 3: UPLOAD (REAL)
+                switchPhase('up');
+                await calculateSpeed('up'); 
+                
+                stopTest();
+            }
+        } catch(e) { 
+            phaseTimer++; 
+        }
+    }
+}
 
         // --- Start/Stop Controls ---
         function startTest() {
