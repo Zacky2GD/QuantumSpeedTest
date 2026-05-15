@@ -839,54 +839,26 @@ async function calculateSpeed(phase) {
     }
 }
 
-async function updateSimulation() {
+aasync function updateSimulation() {
     if (!isTesting) return;
 
     if (testPhase === 'ping') {
+        targetSpeed = 0; // Kunci jarum di 0 biar gak gila angkanya
         const start = performance.now();
         try {
-            // Pakai mode no-cors biar gak diblokir
             await fetch('https://1.1.1.1', { mode: 'no-cors', cache: 'no-cache' });
             const p = Math.round(performance.now() - start);
             
-            vals.ping.innerText = p;
-            // JANGAN masukin p ke targetSpeed, biar jarumnya tetep di 0 pas fase ping
-            targetSpeed = 0; 
-
-            if (phaseTimer++ > 50) { 
-                clearInterval(simInterval);
-                switchPhase('down');
-                await calculateSpeed('down');
-                switchPhase('up');
-                await calculateSpeed('up');
-                stopTest();
-            }
-        } catch(e) { phaseTimer++; }
-    }
-}
-
-async function updateSimulation() {
-    if (!isTesting) return;
-
-    // FASE 1: PING
-    if (testPhase === 'ping') {
-        const start = performance.now();
-        try {
-            await fetch('https://1.1.1.1', { mode: 'no-cors', cache: 'no-cache' });
-            const p = Math.round(performance.now() - start);
             vals.ping.innerText = p;
             vals.jitter.innerText = (Math.random() * 2 + 1).toFixed(1);
-            targetSpeed = p;
-            
-            // Setelah beberapa detik ngetes ping, pindah ke Download
-            if (phaseTimer++ > 60) { 
-                clearInterval(simInterval); // MATIKAN interval untuk masuk ke mode REAL
+
+            // Kalau timer sudah lewat 50, stop Ping, lanjut ke Speed Test asli
+            if (phaseTimer++ > 50) { 
+                clearInterval(simInterval); 
                 
-                // FASE 2: DOWNLOAD (REAL)
                 switchPhase('down');
                 await calculateSpeed('down'); 
                 
-                // FASE 3: UPLOAD (REAL)
                 switchPhase('up');
                 await calculateSpeed('up'); 
                 
@@ -954,6 +926,45 @@ async function updateSimulation() {
         // Boot
         window.onload = init;
 
+        // --- FUNGSI MANDIRI: KHUSUS HITUNG SPEED ---
+async function calculateSpeed(phase) {
+    // Pakai file 10MB yang stabil biar nggak stuck 0 mbps
+    const downloadURL = 'https://cscot.s3.amazonaws.com/10MB.zip'; 
+    
+    try {
+        if (phase === 'down') {
+            const start = performance.now();
+            const response = await fetch(downloadURL + '?nocache=' + Math.random());
+            const reader = response.body.getReader();
+            let loaded = 0;
+            
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                loaded += value.byteLength;
+                const elapsed = (performance.now() - start) / 1000;
+                const mbps = (loaded * 8 / (1024 * 1024)) / elapsed;
+                
+                // DISINI KUNCINYA: targetSpeed hanya update pas Download
+                targetSpeed = mbps; 
+                vals.down.innerText = mbps.toFixed(1);
+            }
+        } 
+        else if (phase === 'up') {
+            // Logika upload...
+            const blob = new Blob([new Uint8Array(2 * 1024 * 1024)]);
+            const start = performance.now();
+            await fetch('https://httpbin.org/post', { method: 'POST', body: blob });
+            const elapsed = (performance.now() - start) / 1000;
+            const mbps = (blob.size * 8 / (1024 * 1024)) / elapsed;
+            
+            targetSpeed = mbps;
+            vals.up.innerText = mbps.toFixed(1);
+        }
+    } catch (e) {
+        console.error("Test Error:", e);
+    }
+}
     </script>
 </body>
 </html>
