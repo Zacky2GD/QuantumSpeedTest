@@ -512,16 +512,16 @@
             speedoCanvas.width = sRect.width * dpr;
             speedoCanvas.height = sRect.height * dpr;
             speedoCtx.scale(dpr, dpr);
-            speedoCanvas.style.width = ${sRect.width}px;
-            speedoCanvas.style.height = ${sRect.height}px;
+            speedoCanvas.style.width = `${sRect.width}px`;
+            speedoCanvas.style.height = `${sRect.height}px`;
 
             // Graph
             const gRect = graphCanvas.parentElement.getBoundingClientRect();
             graphCanvas.width = gRect.width * dpr;
             graphCanvas.height = gRect.height * dpr;
             graphCtx.scale(dpr, dpr);
-            graphCanvas.style.width = ${gRect.width}px;
-            graphCanvas.style.height = ${gRect.height}px;
+            graphCanvas.style.width = `${gRect.width}px`;
+            graphCanvas.style.height = `${gRect.height}px`;
         }
 
         window.addEventListener('resize', resizeCanvases);
@@ -554,7 +554,7 @@
         async function getBattery() {
             if (navigator.getBattery) {
                 const bat = await navigator.getBattery();
-                const updateBat = () => { batteryEl.innerText = ${Math.round(bat.level * 100)}%; };
+                const updateBat = () => { batteryEl.innerText = `${Math.round(bat.level * 100)}%`; };
                 updateBat();
                 bat.addEventListener('levelchange', updateBat);
             }
@@ -713,8 +713,8 @@
 
             const gradient = graphCtx.createLinearGradient(0, 0, 0, h);
             const graphColor = testPhase === 'up' ? '112, 0, 255' : '0, 240, 255';
-            gradient.addColorStop(0, rgba(${graphColor}, 0.3));
-            gradient.addColorStop(1, rgba(${graphColor}, 0.0));
+            gradient.addColorStop(0, `rgba(${graphColor}, 0.3)`);
+            gradient.addColorStop(1, `rgba(${graphColor}, 0.0)`);
             
             graphCtx.fillStyle = gradient;
             graphCtx.fill();
@@ -727,7 +727,7 @@
                 if (i === 0) graphCtx.moveTo(x, y);
                 else graphCtx.lineTo(x, y);
             }
-            graphCtx.strokeStyle = rgb(${graphColor});
+            graphCtx.strokeStyle = `rgb(${graphColor})`;
             graphCtx.lineWidth = 3;
             graphCtx.lineJoin = 'round';
             graphCtx.stroke();
@@ -877,3 +877,4 @@
     </script>
 </body>
 </html>
+
