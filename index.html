@@ -1,467 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#050505">
-    <title>Quantum Speed Test</title>
-    
-    <!-- Modern Font: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        /* =========================================
-           CSS VARIABLES & RESET
-           ========================================= */
-        :root {
-            --bg-color: #050505;
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --accent-glow: rgba(0, 240, 255, 0.5);
-            --color-primary: #00f0ff;
-            --color-secondary: #7000ff;
-            --color-success: #00ff66;
-            --color-warning: #ffb800;
-            --color-danger: #ff0055;
-            --text-main: #ffffff;
-            --text-muted: rgba(255, 255, 255, 0.5);
-            --font-main: 'Inter', sans-serif;
-            --safe-top: env(safe-area-inset-top, 20px);
-            --safe-bottom: env(safe-area-inset-bottom, 20px);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: var(--font-main);
-            min-height: 100vh;
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* =========================================
-           BACKGROUND EFFECTS & PARTICLES
-           ========================================= */
-        .ambient-bg {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: -1;
-            overflow: hidden;
-            background: radial-gradient(circle at 50% 50%, #0a0a0f 0%, #000000 100%);
-        }
-
-        .blob {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.4;
-            animation: float 20s infinite ease-in-out alternate;
-        }
-
-        .blob-1 {
-            width: 40vw; height: 40vw;
-            background: var(--color-secondary);
-            top: -10%; left: -10%;
-        }
-
-        .blob-2 {
-            width: 30vw; height: 30vw;
-            background: var(--color-primary);
-            bottom: -10%; right: -10%;
-            animation-delay: -5s;
-        }
-
-        @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(10%, 10%) scale(1.2); }
-        }
-
-        /* =========================================
-           GLASSMORPHISM UTILITIES
-           ========================================= */
-        .glass {
-            background: var(--glass-bg);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-
-        /* =========================================
-           SPLASH SCREEN
-           ========================================= */
-        #splash {
-            position: fixed;
-            inset: 0;
-            background: #000;
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        
-        .loader-ring {
-            width: 60px; height: 60px;
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: var(--color-primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* =========================================
-           LAYOUT & MAIN UI
-           ========================================= */
-        .app-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: var(--safe-top) 5vw var(--safe-bottom) 5vw;
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
-            gap: 20px;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 1s ease-out;
-        }
-
-        .app-container.loaded {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Navbar */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 24px;
-            border-radius: 100px;
-            margin-top: 20px;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        .header-left, .header-right {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .status-dot {
-            width: 8px; height: 8px;
-            background: var(--color-success);
-            border-radius: 50%;
-            box-shadow: 0 0 10px var(--color-success);
-        }
-
-        .btn-icon {
-            background: none; border: none; color: white;
-            cursor: pointer; opacity: 0.7; transition: 0.3s;
-        }
-        .btn-icon:hover { opacity: 1; transform: scale(1.1); }
-
-        /* Main Grid */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 24px;
-            flex: 1;
-        }
-
-        /* Speedometer Section */
-        .hero-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .canvas-container {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-            aspect-ratio: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        canvas {
-            width: 100%; height: 100%;
-            pointer-events: none;
-        }
-
-        /* Test Controls */
-        .controls {
-            margin-top: 30px;
-            text-align: center;
-        }
-
-        .btn-start {
-            background: linear-gradient(135deg, var(--color-primary), #00b3ff);
-            color: #000;
-            border: none;
-            padding: 18px 50px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            border-radius: 100px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0, 240, 255, 0.3);
-            font-family: var(--font-main);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-start::after {
-            content: ''; position: absolute; top: -50%; left: -50%;
-            width: 200%; height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 60%);
-            opacity: 0; transform: scale(0.5); transition: 0.3s;
-        }
-
-        .btn-start:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 40px rgba(0, 240, 255, 0.5);
-        }
-
-        .btn-start:active::after {
-            opacity: 0.5; transform: scale(1); transition: 0s;
-        }
-
-        .btn-start.running {
-            background: transparent;
-            color: var(--color-danger);
-            border: 2px solid var(--color-danger);
-            box-shadow: 0 10px 30px rgba(255, 0, 85, 0.2);
-        }
-
-        /* Stats Section */
-        .stats-section {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .stat-card {
-            padding: 20px 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: ''; position: absolute; left: 0; top: 0; width: 4px; height: 100%;
-            background: var(--color-primary);
-            opacity: 0; transition: 0.3s;
-        }
-        .stat-card.active::before { opacity: 1; }
-        .stat-card.active { background: rgba(255, 255, 255, 0.08); }
-
-        .stat-label {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 600;
-            font-variant-numeric: tabular-nums;
-            display: flex;
-            align-items: baseline;
-            gap: 5px;
-        }
-
-        .stat-unit {
-            font-size: 1rem;
-            color: var(--text-muted);
-            font-weight: 400;
-        }
-
-        /* Graph & Info Grid */
-        .bottom-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 24px;
-            margin-bottom: 20px;
-        }
-
-        .graph-container {
-            padding: 20px;
-            height: 200px;
-            position: relative;
-        }
-
-        .info-container {
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            gap: 15px;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--glass-border);
-            padding-bottom: 10px;
-        }
-        .info-row:last-child { border: none; padding-bottom: 0; }
-        .info-label { color: var(--text-muted); font-size: 0.85rem; }
-        .info-val { font-weight: 500; font-size: 0.95rem; text-align: right; }
-
-        /* Realtime Status */
-        .status-text {
-            position: absolute;
-            top: 20px; left: 24px;
-            font-size: 0.9rem;
-            color: var(--color-primary);
-            font-weight: 500;
-            opacity: 0;
-            transition: 0.3s;
-        }
-
-        /* =========================================
-           RESPONSIVE DESIGN (Adaptive Layout)
-           ========================================= */
-        @media (max-width: 1024px) {
-            .main-grid { grid-template-columns: 1fr; }
-            .stats-section { display: grid; grid-template-columns: repeat(2, 1fr); }
-            .bottom-grid { grid-template-columns: 1fr; }
-        }
-
-        @media (max-width: 600px) {
-            .stats-section { grid-template-columns: 1fr; }
-            .canvas-container { max-width: 300px; }
-            header { flex-direction: column; gap: 10px; border-radius: 20px; }
-            .btn-start { width: 100%; }
-        }
-    </style>
-</head>
-<body>
-
-    <!-- Ambient Background -->
-    <div class="ambient-bg">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-    </div>
-
-    <!-- Splash Screen -->
-    <div id="splash">
-        <div class="loader-ring"></div>
-    </div>
-
-    <!-- Main App UI -->
-    <div class="app-container" id="app">
-        <!-- Navbar -->
-        <header class="glass">
-            <div class="header-left">
-                <div class="status-dot" id="network-dot"></div>
-                <span id="network-status">Network Connected</span>
-            </div>
-            <div class="header-right">
-                <span id="clock">00:00:00</span>
-                <span id="battery">--%</span>
-                <button class="btn-icon" id="btn-fullscreen" aria-label="Fullscreen">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                </button>
-            </div>
-        </header>
-
-        <!-- Top Section: Speedometer & Stats -->
-        <div class="main-grid">
-            <!-- Hero / Speedometer -->
-            <div class="glass hero-section">
-                <div class="status-text" id="status-text">Ready</div>
-                <div class="canvas-container">
-                    <canvas id="speedometer"></canvas>
-                </div>
-                <div class="controls">
-                    <button class="btn-start" id="btn-start">Start Test</button>
-                </div>
-            </div>
-
-            <!-- Stats Column -->
-            <div class="stats-section">
-                <div class="glass stat-card" id="card-ping">
-                    <div class="stat-label">Ping</div>
-                    <div class="stat-value"><span id="val-ping">--</span> <span class="stat-unit">ms</span></div>
-                </div>
-                <div class="glass stat-card" id="card-jitter">
-                    <div class="stat-label">Jitter</div>
-                    <div class="stat-value"><span id="val-jitter">--</span> <span class="stat-unit">ms</span></div>
-                </div>
-                <div class="glass stat-card" id="card-down">
-                    <div class="stat-label">Download</div>
-                    <div class="stat-value" style="color: var(--color-primary);"><span id="val-down">--</span> <span class="stat-unit">Mbps</span></div>
-                </div>
-                <div class="glass stat-card" id="card-up">
-                    <div class="stat-label">Upload</div>
-                    <div class="stat-value" style="color: var(--color-secondary);"><span id="val-up">--</span> <span class="stat-unit">Mbps</span></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bottom Section: Graph & Info -->
-        <div class="bottom-grid">
-            <div class="glass graph-container">
-                <canvas id="graphCanvas"></canvas>
-            </div>
-            
-            <div class="glass info-container">
-                <div class="info-row">
-                    <span class="info-label">ISP</span>
-                    <span class="info-val" id="info-isp">Detecting...</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">IP Address</span>
-                    <span class="info-val" id="info-ip">Detecting...</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Server</span>
-                    <span class="info-val" id="info-server">Quantum Node #1</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Packet Loss</span>
-                    <span class="info-val" id="info-loss">0%</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- =========================================
-         JAVASCRIPT LOGIC
-         ========================================= -->
-    <script>
-        /**
-         * QUANTUM SPEED TEST ENGINE
-         * High-performance Vanilla JS Speed Test Simulation
-         * Utilizes requestAnimationFrame for 60fps rendering & physics-based lerping
-         */
-
+<script>
         // --- DOM Elements ---
         const splash = document.getElementById('splash');
         const app = document.getElementById('app');
@@ -486,17 +23,14 @@
 
         // --- State Management ---
         let isTesting = false;
-        let testPhase = 'idle'; // idle, ping, down, up
+        let testPhase = 'idle'; 
         let phaseTimer = 0;
-        
-        // Physics Engine for realistic needle movement
         let currentVisualSpeed = 0;
         let targetSpeed = 0;
         let speedVelocity = 0;
-        
-        // Data History for Graph
         let graphData = [];
         const maxGraphPoints = 100;
+        let simInterval = null;
 
         // --- Canvas Setup ---
         const speedoCanvas = document.getElementById('speedometer');
@@ -506,29 +40,25 @@
 
         function resizeCanvases() {
             const dpr = window.devicePixelRatio || 1;
-            
-            // Speedometer
             const sRect = speedoCanvas.parentElement.getBoundingClientRect();
             speedoCanvas.width = sRect.width * dpr;
             speedoCanvas.height = sRect.height * dpr;
             speedoCtx.scale(dpr, dpr);
-            speedoCanvas.style.width = `${sRect.width}px`;
-            speedoCanvas.style.height = `${sRect.height}px`;
+            speedoCanvas.style.width = ${sRect.width}px;
+            speedoCanvas.style.height = ${sRect.height}px;
 
-            // Graph
             const gRect = graphCanvas.parentElement.getBoundingClientRect();
             graphCanvas.width = gRect.width * dpr;
             graphCanvas.height = gRect.height * dpr;
             graphCtx.scale(dpr, dpr);
-            graphCanvas.style.width = `${gRect.width}px`;
-            graphCanvas.style.height = `${gRect.height}px`;
+            graphCanvas.style.width = ${gRect.width}px;
+            graphCanvas.style.height = ${gRect.height}px;
         }
 
         window.addEventListener('resize', resizeCanvases);
 
         // --- Initialization ---
         function init() {
-            // Remove splash
             setTimeout(() => {
                 splash.style.opacity = '0';
                 setTimeout(() => {
@@ -543,7 +73,6 @@
             }, 1000);
         }
 
-        // --- Peripherals (Clock, Battery, Network) ---
         function startClock() {
             setInterval(() => {
                 const now = new Date();
@@ -554,7 +83,7 @@
         async function getBattery() {
             if (navigator.getBattery) {
                 const bat = await navigator.getBattery();
-                const updateBat = () => { batteryEl.innerText = `${Math.round(bat.level * 100)}%`; };
+                const updateBat = () => { batteryEl.innerText = ${Math.round(bat.level * 100)}%; };
                 updateBat();
                 bat.addEventListener('levelchange', updateBat);
             }
@@ -562,7 +91,6 @@
 
         async function fetchNetworkInfo() {
             try {
-                // Fetch Public IP & ISP using free API
                 const res = await fetch('https://ipapi.co/json/');
                 if (res.ok) {
                     const data = await res.json();
@@ -570,340 +98,86 @@
                     document.getElementById('info-isp').innerText = data.org || 'Unknown ISP';
                 }
             } catch (e) {
-                document.getElementById('info-ip').innerText = 'Hidden/Offline';
+                document.getElementById('info-ip').innerText = 'Offline';
                 document.getElementById('info-isp').innerText = 'Local Network';
             }
         }
 
-        // --- Fullscreen Toggle ---
         btnFullscreen.addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => console.log(err));
-            } else {
-                document.exitFullscreen();
-            }
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
         });
 
-        // --- Graphics Engine (Speedometer Canvas) ---
-        function drawSpeedometer(speed, phase) {
-            const w = speedoCanvas.parentElement.clientWidth;
-            const h = speedoCanvas.parentElement.clientHeight;
-            const cx = w / 2;
-            const cy = h / 2;
-            const radius = Math.min(w, h) / 2 - 20;
-
-            speedoCtx.clearRect(0, 0, w, h);
-
-            // Angles
-            const startAngle = Math.PI * 0.75;
-            const endAngle = Math.PI * 2.25;
-            const angleRange = endAngle - startAngle;
-
-            // Mapping speed (0-1000 Mbps log scale for realism)
-            // Log scale makes 0-100 take up more space than 100-1000
-            let speedRatio = 0;
-            if (speed > 0) {
-                speedRatio = Math.log10(speed + 1) / 3; // log10(1000) = 3
-            }
-            speedRatio = Math.min(Math.max(speedRatio, 0), 1);
-            const currentAngle = startAngle + (speedRatio * angleRange);
-
-            // Determine Color
-            let color = '#00f0ff'; // Default Cyan
-            if (phase === 'up') color = '#7000ff'; // Purple for upload
-            if (speedRatio > 0.8) color = '#00ff66'; // Green if super fast
-
-            // Draw Background Track
-            speedoCtx.beginPath();
-            speedoCtx.arc(cx, cy, radius, startAngle, endAngle);
-            speedoCtx.lineWidth = 15;
-            speedoCtx.strokeStyle = 'rgba(255,255,255,0.05)';
-            speedoCtx.lineCap = 'round';
-            speedoCtx.stroke();
-
-            // Draw Tick Marks (Sport Car Style)
-            for (let i = 0; i <= 40; i++) {
-                const tickAngle = startAngle + (i / 40) * angleRange;
-                const isMajor = i % 10 === 0;
-                const innerRad = isMajor ? radius - 25 : radius - 15;
-                
-                speedoCtx.beginPath();
-                speedoCtx.moveTo(cx + Math.cos(tickAngle) * innerRad, cy + Math.sin(tickAngle) * innerRad);
-                speedoCtx.lineTo(cx + Math.cos(tickAngle) * radius, cy + Math.sin(tickAngle) * radius);
-                speedoCtx.strokeStyle = isMajor ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)';
-                speedoCtx.lineWidth = isMajor ? 3 : 1;
-                speedoCtx.stroke();
-
-                // Draw Text for major ticks
-                if (isMajor) {
-                    const val = Math.round(Math.pow(10, (i/40)*3) - 1);
-                    speedoCtx.fillStyle = 'rgba(255,255,255,0.5)';
-                    speedoCtx.font = '10px Inter';
-                    speedoCtx.textAlign = 'center';
-                    speedoCtx.textBaseline = 'middle';
-                    const txtRad = radius - 45;
-                    speedoCtx.fillText(val === 0 ? "0" : val, cx + Math.cos(tickAngle) * txtRad, cy + Math.sin(tickAngle) * txtRad);
+        // --- Real Engine Logic ---
+        async function calculateSpeed(phase) {
+            const downloadURL = 'https://cscot.s3.amazonaws.com/10MB.zip'; 
+            try {
+                if (phase === 'down') {
+                    const start = performance.now();
+                    const response = await fetch(downloadURL + '?nocache=' + Math.random());
+                    const reader = response.body.getReader();
+                    let loaded = 0;
+                    while (true) {
+                        const {done, value} = await reader.read();
+                        if (done) break;
+                        loaded += value.byteLength;
+                        const elapsed = (performance.now() - start) / 1000;
+                        const mbps = (loaded * 8 / (1024 * 1024)) / elapsed;
+                        targetSpeed = mbps; 
+                        vals.down.innerText = mbps.toFixed(1);
+                    }
+                } else if (phase === 'up') {
+                    const blob = new Blob([new Uint8Array(2 * 1024 * 1024)]);
+                    const start = performance.now();
+                    await fetch('https://httpbin.org/post', { method: 'POST', body: blob });
+                    const elapsed = (performance.now() - start) / 1000;
+                    const mbps = (blob.size * 8 / (1024 * 1024)) / elapsed;
+                    targetSpeed = mbps;
+                    vals.up.innerText = mbps.toFixed(1);
                 }
-            }
-
-            // Draw Active Progress Bar (Glow)
-            if (speedRatio > 0) {
-                speedoCtx.beginPath();
-                speedoCtx.arc(cx, cy, radius, startAngle, currentAngle);
-                speedoCtx.lineWidth = 15;
-                speedoCtx.strokeStyle = color;
-                speedoCtx.lineCap = 'round';
-                speedoCtx.shadowBlur = 20;
-                speedoCtx.shadowColor = color;
-                speedoCtx.stroke();
-                speedoCtx.shadowBlur = 0; // Reset
-            }
-
-            // Draw Center Text (Digital)
-            speedoCtx.fillStyle = '#fff';
-            speedoCtx.font = 'bold 48px Inter';
-            speedoCtx.textAlign = 'center';
-            speedoCtx.textBaseline = 'middle';
-            let displayVal = speed.toFixed(1);
-            if (phase === 'idle') displayVal = "0.0";
-            speedoCtx.fillText(displayVal, cx, cy);
-
-            speedoCtx.fillStyle = 'rgba(255,255,255,0.5)';
-            speedoCtx.font = '14px Inter';
-            speedoCtx.fillText(phase === 'ping' ? 'PING (ms)' : 'Mbps', cx, cy + 35);
+            } catch (e) { console.error(e); }
         }
 
-        // --- Realtime Graph Rendering ---
-        function drawGraph() {
-            const w = graphCanvas.parentElement.clientWidth;
-            const h = graphCanvas.parentElement.clientHeight;
-            
-            graphCtx.clearRect(0, 0, w, h);
-            if (graphData.length === 0) return;
-
-            // Grid
-            graphCtx.strokeStyle = 'rgba(255,255,255,0.05)';
-            graphCtx.lineWidth = 1;
-            for(let i=1; i<4; i++) {
-                graphCtx.beginPath();
-                graphCtx.moveTo(0, h * (i/4));
-                graphCtx.lineTo(w, h * (i/4));
-                graphCtx.stroke();
-            }
-
-            // Line
-            graphCtx.beginPath();
-            const step = w / (maxGraphPoints - 1);
-            
-            // Find max for scaling
-            let maxVal = Math.max(...graphData.map(d => d.val), 10);
-
-            for (let i = 0; i < graphData.length; i++) {
-                const x = i * step;
-                const y = h - ((graphData[i].val / maxVal) * (h * 0.8)); // 80% height max
-                
-                if (i === 0) graphCtx.moveTo(x, y);
-                else graphCtx.lineTo(x, y);
-            }
-
-            // Gradient Fill
-            graphCtx.lineTo(w, h);
-            graphCtx.lineTo(0, h);
-            graphCtx.closePath();
-
-            const gradient = graphCtx.createLinearGradient(0, 0, 0, h);
-            const graphColor = testPhase === 'up' ? '112, 0, 255' : '0, 240, 255';
-            gradient.addColorStop(0, `rgba(${graphColor}, 0.3)`);
-            gradient.addColorStop(1, `rgba(${graphColor}, 0.0)`);
-            
-            graphCtx.fillStyle = gradient;
-            graphCtx.fill();
-
-            // Stroke Line
-            graphCtx.beginPath();
-            for (let i = 0; i < graphData.length; i++) {
-                const x = i * step;
-                const y = h - ((graphData[i].val / maxVal) * (h * 0.8));
-                if (i === 0) graphCtx.moveTo(x, y);
-                else graphCtx.lineTo(x, y);
-            }
-            graphCtx.strokeStyle = `rgb(${graphColor})`;
-            graphCtx.lineWidth = 3;
-            graphCtx.lineJoin = 'round';
-            graphCtx.stroke();
-        }
-
-        // --- Main Animation Loop (60fps) ---
-        function animationLoop() {
-            // Physics: Spring & Damper for needle
-            const error = targetSpeed - currentVisualSpeed;
-            speedVelocity += error * 0.1; // Spring stiffness
-            speedVelocity *= 0.85;        // Damper
-            currentVisualSpeed += speedVelocity;
-            
-            if(currentVisualSpeed < 0) currentVisualSpeed = 0;
-
-            // Record data for graph if testing (down/up phase)
-            if (isTesting && (testPhase === 'down' || testPhase === 'up')) {
-                if (Math.random() > 0.5) { // Sample rate control
-                    graphData.push({ val: currentVisualSpeed, phase: testPhase });
-                    if (graphData.length > maxGraphPoints) graphData.shift();
-                }
-            }
-
-            // Render
-            drawSpeedometer(currentVisualSpeed, testPhase);
-            drawGraph();
-
-            requestAnimationFrame(animationLoop);
-        }
-
-        // --- Realistic Simulation Logic ---
-        // Generates believable speed curves using a random walk with momentum
-        let baseSpeed = 0;
-        let volatility = 0;
-        let simInterval = 0;
-        
-/* ========================================================
-   REAL ENGINE: DOWNLOAD, UPLOAD, & PING (FULL VERSION)
-   ======================================================== */
-
-async function calculateSpeed(phase) {
-    // File gambar 10MB untuk test download
-    const downloadURL = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=10000'; 
-    
-    try {
-        if (phase === 'down') {
-            const start = performance.now();
-            const response = await fetch(downloadURL + '&cache=' + Math.random());
-            const reader = response.body.getReader();
-            let loaded = 0;
-            
-            while (true) {
-                const {done, value} = await reader.read();
-                if (done) break;
-                loaded += value.byteLength;
-                const elapsed = (performance.now() - start) / 1000;
-                // Rumus Mbps: (Bytes * 8 / 1024 / 1024) / detik
-                const mbps = (loaded * 8 / (1024 * 1024)) / elapsed;
-                targetSpeed = mbps; 
-                vals.down.innerText = mbps.toFixed(1);
-            }
-        } 
-        else if (phase === 'up') {
-            const blob = new Blob([new Uint8Array(4 * 1024 * 1024)]); // 4MB dummy data
-            const start = performance.now();
-            
-            await fetch('https://httpbin.org/post', {
-                method: 'POST',
-                body: blob
-            });
-            
-            const elapsed = (performance.now() - start) / 1000;
-            const mbps = (blob.size * 8 / (1024 * 1024)) / elapsed;
-            targetSpeed = mbps;
-            vals.up.innerText = mbps.toFixed(1);
-        }
-    } catch (e) {
-        console.error("Test Error:", e);
-    }
-}
-
-        // --- TARUH DI LUAR / SEBELAH updateSimulation, JANGAN DI DALAMNYA ---
-async function calculateSpeed(phase) {
-    const downloadURL = 'https://cscot.s3.amazonaws.com/10MB.zip'; // Pakai link yang lebih stabil
-    
-    try {
-        if (phase === 'down') {
-            const start = performance.now();
-            const response = await fetch(downloadURL + '?cache=' + Math.random());
-            const reader = response.body.getReader();
-            let loaded = 0;
-            
-            while (true) {
-                const {done, value} = await reader.read();
-                if (done) break;
-                loaded += value.byteLength;
-                const elapsed = (performance.now() - start) / 1000;
-                const mbps = (loaded * 8 / (1024 * 1024)) / elapsed;
-                
-                // UPDATE DISINI: Kasih angka mbps ke speedometer
-                targetSpeed = mbps; 
-                vals.down.innerText = mbps.toFixed(1);
+        async function updateSimulation() {
+            if (!isTesting) return;
+            if (testPhase === 'ping') {
+                targetSpeed = 0;
+                const start = performance.now();
+                try {
+                    await fetch('https://1.1.1.1', { mode: 'no-cors', cache: 'no-cache' });
+                    const p = Math.round(performance.now() - start);
+                    vals.ping.innerText = p;
+                    vals.jitter.innerText = (Math.random() * 2 + 1).toFixed(1);
+                    if (phaseTimer++ > 40) { 
+                        clearInterval(simInterval); 
+                        switchPhase('down');
+                        await calculateSpeed('down'); 
+                        switchPhase('up');
+                        await calculateSpeed('up'); 
+                        stopTest();
+                    }
+                } catch(e) { phaseTimer++; }
             }
         }
-        // ... (Logika Upload sama)
-    } catch (e) {
-        console.error("Error:", e);
-        targetSpeed = 0;
-    }
-}
-
-async function updateSimulation() {
-    if (!isTesting) return;
-
-    if (testPhase === 'ping') {
-        targetSpeed = 0; // Kunci jarum di 0 biar gak gila angkanya
-        const start = performance.now();
-        try {
-            await fetch('https://1.1.1.1', { mode: 'no-cors', cache: 'no-cache' });
-            const p = Math.round(performance.now() - start);
-            
-            vals.ping.innerText = p;
-            vals.jitter.innerText = (Math.random() * 2 + 1).toFixed(1);
-
-            // Kalau timer sudah lewat 50, stop Ping, lanjut ke Speed Test asli
-            if (phaseTimer++ > 50) { 
-                clearInterval(simInterval); 
-                
-                switchPhase('down');
-                await calculateSpeed('down'); 
-                
-                switchPhase('up');
-                await calculateSpeed('up'); 
-                
-                stopTest();
-            }
-        } catch(e) { 
-            phaseTimer++; 
-        }
-    }
-}
 
         function switchPhase(phase) {
-    testPhase = phase;
-    statusText.innerText = phase.toUpperCase() + " TEST";
-    
-    // Reset kartu yang aktif
-    Object.values(cards).forEach(c => c.classList.remove('active'));
-    
-    // Aktifkan kartu sesuai fase
-    if(phase === 'ping') cards.ping.classList.add('active');
-    if(phase === 'down') cards.down.classList.add('active');
-    if(phase === 'up') cards.up.classList.add('active');
-}
+            testPhase = phase;
+            statusText.innerText = phase.toUpperCase() + " TEST";
+            Object.values(cards).forEach(c => c.classList.remove('active'));
+            if(cards[phase]) cards[phase].classList.add('active');
+        }
 
-        // --- Start/Stop Controls ---
         function startTest() {
             if (isTesting) { stopTest(); return; }
-            
-            // Reset UI
             isTesting = true;
+            phaseTimer = 0;
             btnStart.classList.add('running');
             btnStart.innerText = "Stop Test";
             statusText.style.opacity = '1';
-            
-            vals.ping.innerText = '--';
-            vals.jitter.innerText = '--';
-            vals.down.innerText = '--';
-            vals.up.innerText = '--';
-            graphData = [];
-            currentVisualSpeed = 0;
-            targetSpeed = 0;
-
+            vals.ping.innerText = '--'; vals.jitter.innerText = '--';
+            vals.down.innerText = '--'; vals.up.innerText = '--';
+            graphData = []; currentVisualSpeed = 0; targetSpeed = 0;
             switchPhase('ping');
-            
-            // 60fps simulation tick update
             simInterval = setInterval(updateSimulation, 1000 / 60);
         }
 
@@ -912,59 +186,73 @@ async function updateSimulation() {
             clearInterval(simInterval);
             testPhase = 'idle';
             targetSpeed = 0;
-            
             btnStart.classList.remove('running');
             btnStart.innerText = "Restart Test";
             statusText.innerText = "Test Complete";
             setTimeout(() => statusText.style.opacity = '0', 2000);
-            
             Object.values(cards).forEach(c => c.classList.remove('active'));
         }
 
-        btnStart.addEventListener('click', startTest);
+        // --- Graphics Renderers ---
+        function drawSpeedometer(speed, phase) {
+            const w = speedoCanvas.width / (window.devicePixelRatio || 1);
+            const h = speedoCanvas.height / (window.devicePixelRatio || 1);
+            const cx = w / 2, cy = h / 2, radius = Math.min(w, h) / 2 - 20;
+            speedoCtx.clearRect(0, 0, w, h);
+            const startAngle = Math.PI * 0.75, endAngle = Math.PI * 2.25, angleRange = endAngle - startAngle;
+            let speedRatio = speed > 0 ? Math.log10(speed + 1) / 3 : 0;
+            speedRatio = Math.min(Math.max(speedRatio, 0), 1);
+            const currentAngle = startAngle + (speedRatio * angleRange);
+            let color = phase === 'up' ? '#7000ff' : '#00f0ff';
 
-        // Boot
-        window.onload = init;
+            speedoCtx.beginPath();
+            speedoCtx.arc(cx, cy, radius, startAngle, endAngle);
+            speedoCtx.lineWidth = 15; speedoCtx.strokeStyle = 'rgba(255,255,255,0.05)'; speedoCtx.lineCap = 'round';
+            speedoCtx.stroke();
 
-        // --- FUNGSI MANDIRI: KHUSUS HITUNG SPEED ---
-async function calculateSpeed(phase) {
-    // Pakai file 10MB yang stabil biar nggak stuck 0 mbps
-    const downloadURL = 'https://cscot.s3.amazonaws.com/10MB.zip'; 
-    
-    try {
-        if (phase === 'down') {
-            const start = performance.now();
-            const response = await fetch(downloadURL + '?nocache=' + Math.random());
-            const reader = response.body.getReader();
-            let loaded = 0;
-            
-            while (true) {
-                const {done, value} = await reader.read();
-                if (done) break;
-                loaded += value.byteLength;
-                const elapsed = (performance.now() - start) / 1000;
-                const mbps = (loaded * 8 / (1024 * 1024)) / elapsed;
-                
-                // DISINI KUNCINYA: targetSpeed hanya update pas Download
-                targetSpeed = mbps; 
-                vals.down.innerText = mbps.toFixed(1);
+            if (speedRatio > 0) {
+                speedoCtx.beginPath();
+                speedoCtx.arc(cx, cy, radius, startAngle, currentAngle);
+                speedoCtx.lineWidth = 15; speedoCtx.strokeStyle = color; speedoCtx.lineCap = 'round';
+                speedoCtx.shadowBlur = 15; speedoCtx.shadowColor = color;
+                speedoCtx.stroke(); speedoCtx.shadowBlur = 0;
             }
-        } 
-        else if (phase === 'up') {
-            // Logika upload...
-            const blob = new Blob([new Uint8Array(2 * 1024 * 1024)]);
-            const start = performance.now();
-            await fetch('https://httpbin.org/post', { method: 'POST', body: blob });
-            const elapsed = (performance.now() - start) / 1000;
-            const mbps = (blob.size * 8 / (1024 * 1024)) / elapsed;
-            
-            targetSpeed = mbps;
-            vals.up.innerText = mbps.toFixed(1);
+
+            speedoCtx.fillStyle = '#fff'; speedoCtx.font = 'bold 48px Inter'; speedoCtx.textAlign = 'center';
+            speedoCtx.fillText(speed.toFixed(1), cx, cy);
+            speedoCtx.fillStyle = 'rgba(255,255,255,0.5)'; speedoCtx.font = '14px Inter';
+            speedoCtx.fillText(phase === 'ping' ? 'PING (ms)' : 'Mbps', cx, cy + 35);
         }
-    } catch (e) {
-        console.error("Test Error:", e);
-    }
-}
+
+        function drawGraph() {
+            const w = graphCanvas.width / (window.devicePixelRatio || 1);
+            const h = graphCanvas.height / (window.devicePixelRatio || 1);
+            graphCtx.clearRect(0, 0, w, h);
+            if (graphData.length === 0) return;
+            graphCtx.beginPath();
+            const step = w / (maxGraphPoints - 1);
+            let maxVal = Math.max(...graphData.map(d => d.val), 10);
+            for (let i = 0; i < graphData.length; i++) {
+                const x = i * step, y = h - ((graphData[i].val / maxVal) * (h * 0.8));
+                if (i === 0) graphCtx.moveTo(x, y); else graphCtx.lineTo(x, y);
+            }
+            graphCtx.strokeStyle = testPhase === 'up' ? '#7000ff' : '#00f0ff';
+            graphCtx.lineWidth = 3; graphCtx.stroke();
+        }
+
+        function animationLoop() {
+            const error = targetSpeed - currentVisualSpeed;
+            speedVelocity += error * 0.1; speedVelocity *= 0.85;
+            currentVisualSpeed += speedVelocity;
+            if (isTesting && (testPhase === 'down' || testPhase === 'up')) {
+                graphData.push({ val: currentVisualSpeed });
+                if (graphData.length > maxGraphPoints) graphData.shift();
+            }
+            drawSpeedometer(currentVisualSpeed, testPhase);
+            drawGraph();
+            requestAnimationFrame(animationLoop);
+        }
+
+        btnStart.addEventListener('click', startTest);
+        window.onload = init;
     </script>
-</body>
-</html>
