@@ -762,6 +762,7 @@
         // Generates believable speed curves using a random walk with momentum
         let baseSpeed = 0;
         let volatility = 0;
+        let simInterval = 0;
         
 /* ========================================================
    REAL ENGINE: DOWNLOAD, UPLOAD, & PING (FULL VERSION)
@@ -839,6 +840,19 @@ async function updateSimulation() {
             phaseTimer++; 
         }
     }
+}
+
+        function switchPhase(phase) {
+    testPhase = phase;
+    statusText.innerText = phase.toUpperCase() + " TEST";
+    
+    // Reset kartu yang aktif
+    Object.values(cards).forEach(c => c.classList.remove('active'));
+    
+    // Aktifkan kartu sesuai fase
+    if(phase === 'ping') cards.ping.classList.add('active');
+    if(phase === 'down') cards.down.classList.add('active');
+    if(phase === 'up') cards.up.classList.add('active');
 }
 
         // --- Start/Stop Controls ---
