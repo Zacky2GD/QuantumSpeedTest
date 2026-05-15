@@ -809,6 +809,62 @@ async function calculateSpeed(phase) {
     }
 }
 
+        // --- TARUH DI LUAR / SEBELAH updateSimulation, JANGAN DI DALAMNYA ---
+async function calculateSpeed(phase) {
+    const downloadURL = 'https://cscot.s3.amazonaws.com/10MB.zip'; // Pakai link yang lebih stabil
+    
+    try {
+        if (phase === 'down') {
+            const start = performance.now();
+            const response = await fetch(downloadURL + '?cache=' + Math.random());
+            const reader = response.body.getReader();
+            let loaded = 0;
+            
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                loaded += value.byteLength;
+                const elapsed = (performance.now() - start) / 1000;
+                const mbps = (loaded * 8 / (1024 * 1024)) / elapsed;
+                
+                // UPDATE DISINI: Kasih angka mbps ke speedometer
+                targetSpeed = mbps; 
+                vals.down.innerText = mbps.toFixed(1);
+            }
+        }
+        // ... (Logika Upload sama)
+    } catch (e) {
+        console.error("Error:", e);
+        targetSpeed = 0;
+    }
+}
+
+async function updateSimulation() {
+    if (!isTesting) return;
+
+    if (testPhase === 'ping') {
+        const start = performance.now();
+        try {
+            // Pakai mode no-cors biar gak diblokir
+            await fetch('https://1.1.1.1', { mode: 'no-cors', cache: 'no-cache' });
+            const p = Math.round(performance.now() - start);
+            
+            vals.ping.innerText = p;
+            // JANGAN masukin p ke targetSpeed, biar jarumnya tetep di 0 pas fase ping
+            targetSpeed = 0; 
+
+            if (phaseTimer++ > 50) { 
+                clearInterval(simInterval);
+                switchPhase('down');
+                await calculateSpeed('down');
+                switchPhase('up');
+                await calculateSpeed('up');
+                stopTest();
+            }
+        } catch(e) { phaseTimer++; }
+    }
+}
+
 async function updateSimulation() {
     if (!isTesting) return;
 
